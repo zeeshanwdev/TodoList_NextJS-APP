@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { handleSubmit } from "./actions/form.js";
 import { handleDelete } from "./actions/delete.js";
+import { handleEdit } from "./actions/edit.js"; 
 import { useSession } from "next-auth/react";
 
 export default function Home() {
-  const { data: session } = useSession(); 
+  const { data: session } = useSession();
   const [todos, setTodos] = useState([]);
+  const [editTodo, setEditTodo] = useState(null); 
+  const [todoText, setTodoText] = useState(""); 
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -23,30 +26,38 @@ export default function Home() {
     fetchPosts();
   }, []);
 
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+
+    if (editTodo) {
+      await handleEdit(editTodo._id, todoText, setTodos);
+      setEditTodo(null);
+    } else {
+      const formData = new FormData(e.target);
+      await handleSubmit(formData, setTodos);
+    }
+
+    setTodoText("");
+  };
+
   return (
     <>
       <div className="flex justify-center flex-col h-[20vh] items-center gap-5 mt-30">
         <h1 className="text-2xl font-bold">TodoList</h1>
 
         {session ? (
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const formData = new FormData(e.target);
-              await handleSubmit(formData, setTodos);
-              e.target.reset();
-            }}
-            className="flex gap-4"
-          >
+          <form onSubmit={handleFormSubmit} className="flex gap-4">
             <input
               className="border border-black p-2"
               type="text"
               name="todo"
               placeholder="Enter Your Todo"
+              value={todoText}
+              onChange={(e) => setTodoText(e.target.value)}
               required
             />
             <button className="bg-purple-500 p-2 text-white rounded-2xl">
-              Submit
+              {editTodo ? "Update" : "Submit"}
             </button>
           </form>
         ) : (
@@ -58,21 +69,35 @@ export default function Home() {
 
       {todos.length > 0 ? (
         todos.map((todo) => (
-          <div key={todo._id} className="flex justify-center flex-col items-center mt-6">
+          <div
+            key={todo._id}
+            className="flex justify-center flex-col items-center mt-6"
+          >
             <ul className="w-1/3 mx-auto flex flex-col gap-4">
               <li className="flex justify-inline items-center gap-8">
                 <div className="flex gap-2">
                   {session && (
                     <>
-                      <button className="bg-purple-500 p-1 px-4 text-white rounded-2xl hover:cursor-pointer">
-                        Edit
-                      </button>
-                      <button
+                      {/* Edit Icon */}
+                      <lord-icon
+                        onClick={() => {
+                          setEditTodo(todo);
+                          setTodoText(todo.todos);
+                        }}
+                        className="w-8 h-8"
+                        src="https://cdn.lordicon.com/cbtlerlm.json"
+                        trigger="hover"
+                        colors="primary:#121331,secondary:#c69cf4,tertiary:#ebe6ef,quaternary:#000000,quinary:#3a3347"
+                      ></lord-icon>
+
+                      {/* Delete Icon */}
+                      <lord-icon
                         onClick={() => handleDelete(todo._id, setTodos)}
-                        className="bg-red-500 p-1 px-3 text-white rounded-2xl hover:cursor-pointer"
-                      >
-                        Delete
-                      </button>
+                        className="w-8 h-8"
+                        src="https://cdn.lordicon.com/nhqwlgwt.json"
+                        trigger="hover"
+                        colors="primary:#121331,secondary:#c69cf4,tertiary:#646e78,quaternary:#ebe6ef"
+                      ></lord-icon>
                     </>
                   )}
                 </div>
